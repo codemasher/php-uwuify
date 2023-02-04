@@ -62,9 +62,9 @@ class Uwuify{
 					$word = preg_replace($regex, $replacement, $word);
 				}
 
-				if($this->getUppercaseProportion($word) < 0.5){
-					$word = lcfirst($word);
-				}
+#				if($this->getUppercaseProportion($word) < 0.5){
+#					$word = lcfirst($word);
+#				}
 			}
 		}
 
@@ -142,17 +142,17 @@ class Uwuify{
 	/**
 	 * Get a proportion of uppercase characters in a string.
 	 */
-	protected function getUppercaseProportion(string $word):float{
-		$totalCharacters = mb_strlen($word);
-		$upperCharacters = 0;
-
-		foreach(mb_str_split($word) as $character){
-			if(mb_strtoupper($character) === $character){
-				$upperCharacters++;
-			}
-		}
-
-		return $upperCharacters / $totalCharacters;
-	}
+#	protected function getUppercaseProportion(string $word):float{
+#		$totalCharacters = mb_strlen($word);
+#		$upperCharacters = 0;
+#
+#		foreach(mb_str_split($word) as $character){
+#			if(mb_strtoupper($character) === $character){
+#				$upperCharacters++;
+#			}
+#		}
+#
+#		return $upperCharacters / $totalCharacters;
+#	}
 
 }
