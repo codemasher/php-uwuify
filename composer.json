@@ -1,21 +1,39 @@
 {
-    "name": "nemo9l/uwuify",
-    "description": "String uwuifying library for PHP",
-    "type": "library",
-    "license": "MIT",
-    "homepage": "https://github.com/nemo9l/uwuify-php",
-    "authors": [
-        {
-            "name": "Ji Yong, Kim",
-            "email": "nemo@qroffle.com"
-        }
-    ],
-    "autoload": {
-        "psr-4": {
-            "Nemo9l\\Uwuify\\": "src/"
-        }
-    },
-    "require": {
-        "php": ">=8.0"
-    }
+	"name": "codemasher/uwuify",
+	"description": "String uwuifying library for PHP",
+	"type": "library",
+	"license": "MIT",
+	"homepage": "https://github.com/codemasher/php-uwuify",
+	"authors": [
+		{
+			"name": "Ji Yong, Kim",
+			"email": "nemo@qroffle.com",
+			"homepage": "https://github.com/nemorize/php-uwuify"
+		},
+		{
+			"name": "smiley",
+			"email": "smiley@chillerlan.net",
+			"homepage": "https://github.com/codemasher"
+		}
+	],
+	"require": {
+		"php": "^8.1",
+		"chillerlan/php-settings-container": "^3.0"
+	},
+	"require-dev": {
+		"phan/phan": "^5.4"
+	},
+	"autoload": {
+		"psr-4": {
+			"codemasher\\Uwuify\\": "src/"
+		}
+	},
+	"scripts": {
+		"phan": "@php vendor/bin/phan"
+	},
+	"config": {
+		"lock": false,
+		"sort-packages": true,
+		"platform-check": true
+	}
 }
