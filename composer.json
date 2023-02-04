@@ -6,8 +6,11 @@
 	"homepage": "https://github.com/codemasher/php-uwuify",
 	"authors": [
 		{
+			"name": "Sjors van Holst",
+			"homepage": "https://github.com/Schotsl/Uwuifier"
+		},
+		{
 			"name": "Ji Yong, Kim",
-			"email": "nemo@qroffle.com",
 			"homepage": "https://github.com/nemorize/php-uwuify"
 		},
 		{
@@ -18,6 +21,7 @@
 	],
 	"require": {
 		"php": "^8.1",
+		"ext-mbstring": "*",
 		"chillerlan/php-settings-container": "^3.0"
 	},
 	"require-dev": {

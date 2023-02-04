@@ -14,102 +14,40 @@
 
 namespace codemasher\Uwuify;
 
+use chillerlan\Settings\SettingsContainerInterface;
+use function array_rand;
+use function explode;
+use function filter_var;
+use function implode;
+use function lcfirst;
+use function mt_getrandmax;
+use function mt_rand;
+use function preg_replace;
+use function rand;
+use function rtrim;
+use function str_repeat;
+use function substr;
+use const FILTER_VALIDATE_URL;
+
 class Uwuify{
 
-	protected static array $_faces = [
-		'(・`ω´・)',
-		';;w;;',
-		'OwO',
-		'UwU',
-		'>w<',
-		'^w^',
-		'\(^o\) (/o^)/',
-		'( ^ _ ^)∠☆',
-		'(U __ U)',
-		'(*^*)',
-		'(+_+)',
-		'(/_;)',
-		'(^.^)',
-		'(♥_♥)',
-		'*(^O^)*',
-		'*(^o^)*',
-		'ʕ•ᴥ•ʔ',
-		'(*^.^*)',
-		'(｡♥‿♥｡)',
-	];
-
-	protected static array $_actions = [
-		'*blushes*',
-		'*nuzzles*',
-		'*notices bulge*',
-		'*whispers to self*',
-		'*cries*',
-		'*walks away*',
-		'*sweats*',
-		'*boops your nose*',
-		'*sees bulge*',
-	];
-
-	protected static array $_exclamations = [
-		'!?',
-		'?!!',
-		'?!?1',
-		'!!11',
-		'?!1?',
-	];
-
-	protected static array $_regexMaps = [
-		'/(?:r|l)/'    => 'w',
-		'/(?:R|L)/'    => 'W',
-		'/n([aeiou])/' => 'ny$1',
-		'/N([aeiou])/' => 'Ny$1',
-		'/N([AEIOU])/' => 'Ny$1',
-		'/ove/'        => 'uv',
-	];
-
-	public float $regexModifier       = 1;
-	public float $exclamationModifier = 1;
-	public array $spaceModifier       = ['faces' => 0.05, 'actions' => 0.075, 'stutters' => 0.1];
+	protected UwuifyOptions|SettingsContainerInterface $options;
 
 	/**
-	 * Constructor.
-	 *
-	 * @param float|null $regexModifier
-	 * @param float|null $exclamationModifier
-	 * @param array      $spaceModifier
+	 * Uwuify Constructor.
 	 */
-	public function __construct(float $regexModifier = null, float $exclamationModifier = null, array $spaceModifier = []){
-		if($regexModifier !== null){
-			$this->regexModifier = $regexModifier;
-		}
-
-		if($exclamationModifier !== null){
-			$this->exclamationModifier = $exclamationModifier;
-		}
-
-		if($spaceModifier !== null){
-			if(isset($spaceModifier['faces']) && is_float($spaceModifier['faces'])){
-				$this->spaceModifier['faces'] = $spaceModifier['faces'];
-			}
-			if(isset($spaceModifier['actions']) && is_float($spaceModifier['actions'])){
-				$this->spaceModifier['actions'] = $spaceModifier['actions'];
-			}
-			if(isset($spaceModifier['stutters']) && is_float($spaceModifier['stutters'])){
-				$this->spaceModifier['stutters'] = $spaceModifier['stutters'];
-			}
-		}
+	public function __construct(UwuifyOptions|SettingsContainerInterface $options = null){
+		$this->options = $options ?? new UwuifyOptions;
 	}
 
 	/**
 	 * Translate some words to uwu from a sentence.
-	 *
-	 * @param string $sentence
-	 *
-	 * @return string
 	 */
 	public function uwuifyWords(string $sentence):string{
 		$words = explode(' ', $sentence);
+
 		foreach($words as &$word){
+
 			if(filter_var($word, FILTER_VALIDATE_URL) !== false){
 				continue;
 			}
@@ -118,8 +56,9 @@ class Uwuify{
 				continue;
 			}
 
-			foreach(self::$_regexMaps as $regex => $replacement){
-				if($this->getRandomFloat() <= $this->regexModifier){
+			foreach($this->options->regexMaps as $regex => $replacement){
+
+				if($this->getRandomFloat() <= $this->options->regexModifier){
 					$word = preg_replace($regex, $replacement, $word);
 				}
 
@@ -134,24 +73,23 @@ class Uwuify{
 
 	/**
 	 * Translate some exclamations to uwu from a sentence.
-	 *
-	 * @param string $sentence
-	 *
-	 * @return string
 	 */
 	public function uwuifyExclamations(string $sentence):string{
 		$words = explode(' ', $sentence);
+
 		foreach($words as &$word){
-			if($this->getRandomFloat() > $this->exclamationModifier){
+
+			if($this->getRandomFloat() > $this->options->exclamationModifier){
 				continue;
 			}
 
-			$replacedWord = preg_replace('/[?!]+$/', '', $word);
-			if($word == $replacedWord){
+			$replacedWord = rtrim($word, '!?');
+
+			if($word === $replacedWord){
 				continue;
 			}
 
-			$word = $replacedWord.self::$_exclamations[array_rand(self::$_exclamations)];
+			$word = $replacedWord.$this->options->exclamations[array_rand($this->options->exclamations)];
 		}
 
 		return implode(' ', $words);
@@ -159,30 +97,25 @@ class Uwuify{
 
 	/**
 	 * Translate some spaces to faces, action or stutters from a sentence.
-	 *
-	 * @param string $sentence
-	 *
-	 * @return string
 	 */
 	public function uwuifySpaces(string $sentence):string{
 		$words = explode(' ', $sentence);
 
-		$faceThreshold    = $this->spaceModifier['faces'];
-		$actionThreshold  = $this->spaceModifier['actions'] + $faceThreshold;
-		$stutterThreshold = $this->spaceModifier['stutters'] + $actionThreshold;
+		$faceThreshold    = $this->options->spaceModifierFaces;
+		$actionThreshold  = $this->options->spaceModifierActions + $faceThreshold;
+		$stutterThreshold = $this->options->spaceModifierStutters + $actionThreshold;
 
 		foreach($words as &$word){
 			$firstCharacter = substr($word, 0, 1);
 
-			if($this->getRandomFloat() <= $faceThreshold && self::$_faces){
-				$word .= ' '.self::$_faces[array_rand(self::$_faces)];
+			if($this->getRandomFloat() <= $faceThreshold){
+				$word .= ' '.$this->options->faces[array_rand($this->options->faces)];
 			}
-			elseif($this->getRandomFloat() <= $actionThreshold && self::$_actions){
-				$word .= ' '.self::$_actions[array_rand(self::$_actions)];
+			elseif($this->getRandomFloat() <= $actionThreshold){
+				$word .= ' '.$this->options->actions[array_rand($this->options->actions)];
 			}
 			elseif($this->getRandomFloat() <= $stutterThreshold){
-				$stutterCount = rand(1, 3);
-				$word         = str_repeat($firstCharacter.'-', $stutterCount).$word;
+				$word = str_repeat($firstCharacter.'-', rand(1, 3)).$word;
 			}
 		}
 
@@ -191,10 +124,6 @@ class Uwuify{
 
 	/**
 	 * Uwuify sentences.
-	 *
-	 * @param string $sentence
-	 *
-	 * @return string
 	 */
 	public function uwuify(string $sentence):string{
 		$sentence = $this->uwuifyWords($sentence);
@@ -205,26 +134,20 @@ class Uwuify{
 
 	/**
 	 * Get a random float between 0 and 1.
-	 *
-	 * @return float
 	 */
-	private function getRandomFloat():float{
+	protected function getRandomFloat():float{
 		return mt_rand() / mt_getrandmax();
 	}
 
 	/**
 	 * Get a proportion of uppercase characters in a string.
-	 *
-	 * @param string $word
-	 *
-	 * @return float
 	 */
-	private function getUppercaseProportion(string $word):float{
-		$totalCharacters = strlen($word);
+	protected function getUppercaseProportion(string $word):float{
+		$totalCharacters = mb_strlen($word);
 		$upperCharacters = 0;
 
-		foreach(str_split($word) as $character){
-			if(strtoupper($character) == $character){
+		foreach(mb_str_split($word) as $character){
+			if(mb_strtoupper($character) === $character){
 				$upperCharacters++;
 			}
 		}
