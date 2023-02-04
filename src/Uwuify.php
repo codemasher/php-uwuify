@@ -52,7 +52,7 @@ class Uwuify{
 				continue;
 			}
 
-			if(str_starts_with($word, '@')){
+			if(str_starts_with($word, '@') || str_starts_with($word, '#')){
 				continue;
 			}
 
