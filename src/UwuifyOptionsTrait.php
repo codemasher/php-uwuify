@@ -111,6 +111,8 @@ trait UwuifyOptionsTrait{
 		'/N([aeiou])/'    => 'Ny$1',
 		'/N([AEIOU])/'    => 'NY$1',
 		'/ove/i'          => 'uv',
+		'/their/i'        => 'deyw', // @todo
+		'/they/i'         => 'dey',
 		'/the/i'          => 'da',
 		'/this/i'         => 'dis',
 		'/th/i'           => 'd',
