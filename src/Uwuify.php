@@ -1,5 +1,4 @@
-<?php /**  */
-
+<?php
 /**
  * Class Uwuify
  *
@@ -15,29 +14,72 @@
 namespace codemasher\Uwuify;
 
 use chillerlan\Settings\SettingsContainerInterface;
-use function array_rand;
+use function array_map;
+use function array_sum;
 use function explode;
-use function filter_var;
+use function floor;
 use function implode;
-use function lcfirst;
-use function mt_getrandmax;
+use function mb_str_split;
+use function mb_strtolower;
+use function mb_strtoupper;
 use function mt_rand;
+use function preg_match;
 use function preg_replace;
-use function rand;
 use function rtrim;
+use function sprintf;
 use function str_repeat;
-use function substr;
-use const FILTER_VALIDATE_URL;
 
 class Uwuify{
 
+	protected const spaceModifierKeys = [
+		'punctuation' => 'spaceModifierPunctuation',
+		'emoticon'    => 'spaceModifierEmoticon',
+		'emoji'       => 'spaceModifierEmoji',
+		'kaomoji'     => 'spaceModifierKaomoji',
+		'actions'     => 'spaceModifierActions',
+		'stutter'     => 'spaceModifierStutter',
+	];
+
+	protected const caseModifierKeys = [
+		'lower'       => 'lowercaseModifier',
+		'upper'       => 'uppercaseModifier',
+		'mocking'     => 'mockingcaseModifier',
+	];
+
 	protected UwuifyOptions|SettingsContainerInterface $options;
+	protected array                                    $spaceModifiers;
+	protected array                                    $caseModifiers;
 
 	/**
-	 * Uwuify Constructor.
+	 * Uwuify Constwuctow òωó
 	 */
 	public function __construct(UwuifyOptions|SettingsContainerInterface $options = null){
-		$this->options = $options ?? new UwuifyOptions;
+		$this->options        = $options ?? new UwuifyOptions;
+		$this->spaceModifiers = $this->setupModifierThresholds($this::spaceModifierKeys);
+		$this->caseModifiers  = $this->setupModifierThresholds($this::caseModifierKeys);
+	}
+
+	/**
+	 * Set up the modifier threshold values
+	 */
+	protected function setupModifierThresholds(array $modifierOptionKeys):array{
+		$thresholds = [];
+
+		foreach($modifierOptionKeys as $key => $option){
+			$thresholds[$key] = $this->options->{$option};
+		}
+
+		$sum = array_sum($thresholds);
+
+		// total is over 100, we'll adjust to proper percentages to reduce scatter
+		if($sum > 100){
+			$thresholds = array_map(fn(int $val):int => (int)floor($val / $sum * 100), $thresholds);
+			$sum        = array_sum($thresholds);
+		}
+
+		$thresholds['nothing'] = 100 - $sum;
+
+		return $thresholds;
 	}
 
 	/**
@@ -48,27 +90,55 @@ class Uwuify{
 
 		foreach($words as &$word){
 
-			if(filter_var($word, FILTER_VALIDATE_URL) !== false){
+			// skip URLs, @-names and hashtags
+			if(preg_match('~^(https?://|[@#])~i', $word)){
 				continue;
 			}
 
-			if(str_starts_with($word, '@') || str_starts_with($word, '#')){
-				continue;
-			}
+			foreach($this->options->uwuMap as $regex => $replacement){
 
-			foreach($this->options->regexMaps as $regex => $replacement){
-
-				if($this->getRandomFloat() <= $this->options->regexModifier){
+				if($this->rand() <= $this->options->uwuModifier){
 					$word = preg_replace($regex, $replacement, $word);
 				}
 
-#				if($this->getUppercaseProportion($word) < 0.5){
-#					$word = lcfirst($word);
-#				}
+				// randomly uppercase/lower/spongebobcase words
+				if($this->rand() <= $this->caseModifiers['nothing']){
+					continue;
+				}
+				elseif($this->rand() <= $this->caseModifiers['lower']){
+					$word = mb_strtolower($word);
+				}
+				elseif($this->rand() <= $this->caseModifiers['upper']){
+					$word = mb_strtoupper($word);
+				}
+				elseif($this->rand() <= $this->caseModifiers['mocking']){
+					$word = $this->mOCkiNgCaSe($word);
+				}
 			}
 		}
 
 		return implode(' ', $words);
+	}
+
+	/**
+	 * spongebob mocking case
+	 */
+	protected function mOCkiNgCaSe(string $word):string{
+		$chars = mb_str_split(mb_strtolower($word));
+
+		foreach($chars as &$char){
+
+			if(preg_match('/\W/', $char)){
+				continue;
+			}
+
+			if($this->rand() <= $this->options->mockingModifier){
+				$char = mb_strtoupper($char);
+			}
+
+		}
+
+		return implode('', $chars);
 	}
 
 	/**
@@ -79,7 +149,7 @@ class Uwuify{
 
 		foreach($words as &$word){
 
-			if($this->getRandomFloat() > $this->options->exclamationModifier){
+			if($this->rand() > $this->options->exclamationModifier){
 				continue;
 			}
 
@@ -89,7 +159,14 @@ class Uwuify{
 				continue;
 			}
 
-			$word = $replacedWord.$this->options->exclamations[array_rand($this->options->exclamations)];
+			$exclamation = '';
+			$len         = mt_rand($this->options->exclamationMinLength, $this->options->exclamationMaxLength);
+
+			for($i = 0; $i < $len; $i++){
+				$exclamation .= ['!', '¡', '?', '¿', '1'][mt_rand(0, 4)];
+			}
+
+			$word = $replacedWord.$exclamation;
 		}
 
 		return implode(' ', $words);
@@ -101,58 +178,56 @@ class Uwuify{
 	public function uwuifySpaces(string $sentence):string{
 		$words = explode(' ', $sentence);
 
-		$faceThreshold    = $this->options->spaceModifierFaces;
-		$actionThreshold  = $this->options->spaceModifierActions + $faceThreshold;
-		$stutterThreshold = $this->options->spaceModifierStutters + $actionThreshold;
-
 		foreach($words as &$word){
-			$firstCharacter = substr($word, 0, 1);
 
-			if($this->getRandomFloat() <= $faceThreshold){
-				$word .= ' '.$this->options->faces[array_rand($this->options->faces)];
+			if($this->rand() <= $this->spaceModifiers['nothing']){
+				continue;
 			}
-			elseif($this->getRandomFloat() <= $actionThreshold){
-				$word .= ' '.$this->options->actions[array_rand($this->options->actions)];
+			elseif($this->rand() <= $this->spaceModifiers['punctuation']){
+				$word .= $this->options->getRandomPunctuation();
 			}
-			elseif($this->getRandomFloat() <= $stutterThreshold){
-				$word = str_repeat($firstCharacter.'-', rand(1, 3)).$word;
+			elseif($this->rand() <= $this->spaceModifiers['emoticon']){
+				$word .= ' '.$this->options->getRandomEmoticon();
 			}
+			elseif($this->rand() <= $this->spaceModifiers['emoji']){
+				$word .= ' '.$this->options->getRandomEmoji();
+			}
+			elseif($this->rand() <= $this->spaceModifiers['kaomoji']){
+				$word .= ' '.$this->options->getRandomKaomoji();
+			}
+			elseif($this->rand() <= $this->spaceModifiers['actions']){
+				$word .= sprintf(' *%s*', $this->options->getRandomAction());
+			}
+			elseif($this->rand() <= $this->spaceModifiers['stutter']){
+				// skip non-word characters and URLs
+				if(preg_match('/^(\W|http)/i', $word)){
+					continue;
+				}
+				// sprinkle in some ellipses for a change
+				$fill = ['-', '…'][(int)($this->rand() <= $this->options->stutterEllipseModifier)];
+				$word = str_repeat(mb_substr($word, 0, 1).$fill, mt_rand(1, 3)).$word;
+			}
+
 		}
 
 		return implode(' ', $words);
 	}
 
 	/**
-	 * Uwuify sentences.
+	 * Uwuify text.
 	 */
-	public function uwuify(string $sentence):string{
-		$sentence = $this->uwuifyWords($sentence);
-		$sentence = $this->uwuifyExclamations($sentence);
+	public function uwuify(string $text):string{
+		$text = $this->uwuifyWords($text);
+		$text = $this->uwuifyExclamations($text);
 
-		return $this->uwuifySpaces($sentence);
+		return $this->uwuifySpaces($text);
 	}
 
 	/**
-	 * Get a random float between 0 and 1.
+	 * Get a random int between 0 and 100.
 	 */
-	protected function getRandomFloat():float{
-		return mt_rand() / mt_getrandmax();
+	protected function rand(int $max = null):int{
+		return mt_rand(0, $max ?? 100);
 	}
-
-	/**
-	 * Get a proportion of uppercase characters in a string.
-	 */
-#	protected function getUppercaseProportion(string $word):float{
-#		$totalCharacters = mb_strlen($word);
-#		$upperCharacters = 0;
-#
-#		foreach(mb_str_split($word) as $character){
-#			if(mb_strtoupper($character) === $character){
-#				$upperCharacters++;
-#			}
-#		}
-#
-#		return $upperCharacters / $totalCharacters;
-#	}
 
 }

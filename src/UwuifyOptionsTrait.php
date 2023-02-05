@@ -10,53 +10,210 @@
 
 namespace codemasher\Uwuify;
 
+use InvalidArgumentException;
+use function array_rand;
+use function is_array;
 use function shuffle;
+use function sprintf;
 
 /**
  * Trait UwuifyOptionsTrait
  */
 trait UwuifyOptionsTrait{
 
-	protected float $regexModifier         = 1.0;
-	protected float $exclamationModifier   = 0.75;
-	protected float $spaceModifierFaces    = 0.25;
-	protected float $spaceModifierActions  = 0.02;
-	protected float $spaceModifierStutters = 0.025;
+	/**
+	 * controls how uwu the string will be [0-100]. -1 disables text uwufication.
+	 */
+	protected int $uwuModifier              = 75;
 
-	protected array $regexMaps = [
-		'/(?:r|l)/i'    => 'w',
-		'/n([aeiou])/i' => 'ny$1',
-		'/ove/i'        => 'uv',
-		'/the/i'        => 'da',
-		'/this/i'       => 'dis',
-		'/th/i'         => 'd',
+	/**
+	 * controls lowercasing of whole words [0-100]. -1 disables modification.
+	 */
+	protected int $lowercaseModifier        = 7;
+
+	/**
+	 * controls uppercasing of whole words [0-100]. -1 disables modification.
+	 */
+	protected int $uppercaseModifier        = 7;
+
+	/**
+	 * controls mocking case (spongebob case) of whole words [0-100]. -1 disables modification.
+	 */
+	protected int $mockingcaseModifier      = 7;
+
+	/**
+	 * controls how many characters of a word in mocking case are uppercased [0-100]. -1 disables modification.
+	 */
+	protected int $mockingModifier          = 60;
+
+	/**
+	 * controls the amount of exclamations [0-100]. -1 disables modification.
+	 */
+	protected int $exclamationModifier      = 100;
+
+	/**
+	 * the minimum length of exclamations
+	 */
+	protected int $exclamationMinLength     = 2;
+
+	/**
+	 * the maximum length of exclamations
+	 */
+	protected int $exclamationMaxLength     = 10;
+
+	/**
+	 * controls the amount of additional punctuation [0-100]. -1 disables modification.
+	 */
+	protected int $spaceModifierPunctuation = 10;
+
+	/**
+	 * controls the amount of ascii emoticons [0-100]. -1 disables modification.
+	 */
+	protected int $spaceModifierEmoticon    = 10;
+
+	/**
+	 * controls the amount of emoji [0-100]. -1 disables modification.
+	 */
+	protected int $spaceModifierEmoji       = 10;
+
+	/**
+	 * controls the amount of text kaomoji [0-100]. -1 disables modification.
+	 */
+	protected int $spaceModifierKaomoji     = 5;
+
+	/**
+	 * controls the amount of actions (*denoted by asterisks*) [0-100]. -1 disables modification.
+ 	 */
+	protected int $spaceModifierActions     = 5;
+
+	/**
+	 * controls the amount of stuttering [0-100]. -1 disables modification.
+	 */
+	protected int $spaceModifierStutter     = 10;
+
+	/**
+	 * controls the amount of elleises in stuttering (I-I-I- vs I…I…I…) [0-100]. -1 disables modification.
+	 */
+	protected int $stutterEllipseModifier   = 10;
+
+	/**
+	 * UwU regegx replacement patterns
+	 *
+	 * @var string[]
+	 */
+	protected array $uwuMap = [
+		'/(?:r|l)/'       => 'w',
+		'/(?:R|L)/'       => 'W',
+		'/you\'?(r|w)e/i' => 'ur', // before/after modification
+		'/you/i'          => 'u',
+		'/a(r|w)e/i'      => 'r',
+		'/n([aeiou])/'    => 'ny$1',
+		'/N([aeiou])/'    => 'Ny$1',
+		'/N([AEIOU])/'    => 'NY$1',
+		'/ove/i'          => 'uv',
+		'/the/i'          => 'da',
+		'/this/i'         => 'dis',
+		'/th/i'           => 'd',
+		'/ou/'            => 'ow',
+		'/Ou/'            => 'Ow',
+		'/OU/'            => 'OW',
 	];
 
-	protected array $faces = [
+	/**
+	 * punctuation patterns
+	 *
+	 * @var string[]
+	 */
+	protected array $punctuation = [
+		'~',
+		'~~',
+		'-',
+		'--',
+		'..',
+		'..,',
+		',,,',
+		'^^',
+		'^^;;',
+		'...!',
+		'...?',
+	];
+
+	/**
+	 * ascii/"western" emoticons
+	 *
+	 * @var string[]
+	 */
+	protected array $emoticons = [
+		'^^',
+		'^^;;',
+		'OwO',
+		'UwU',
+		';;w;;',
+		'>w<',
+		'^w^',
+		':3',
+		'x3',
+		'^-^',
+		'._.',
+		'*_*',
+		'o.O',
+		'O.o',
+		'-.-',
+		'(o_O)',
+		'ʘwʘ',
+		'XD',
+		'nyaa~~',
+		'nya~',
+		'mya',
+		'nani!?',
+		'rawr x3',
+		'>_<',
+		'rawr',
+		'ö.ö',
+		'ÚwÚ',
+		'σωσ',
+		'òωó',
+		'ò_ó',
+		'ó_ò',
+		'õ_o',
+		'ù_u',
+		'o_Ô',
+	];
+
+	/**
+	 * unicode emoji
+	 *
+	 * @var string[]
+	 */
+	protected array $emoji = [
 		'😳',
 		'😳😳😳',
 		'🥺',
-		'👉👈',
+		'😇',
+		'😯',
+		'😊',
 		'☺️',
 		'😍',
 		'🥰',
 		'🤩',
 		'🥵',
 		'😻',
+		'👉👈',
 		'🌈',
 		'✨',
+		'💖',
+		'💞',
+		'🏳️‍🌈',
+		'🏳️‍⚧️',
+	];
+
+	/**
+	 * "eastern"/japanese emoticons
+	 *
+	 * @var string[]
+	 */
+	protected array $kaomoji = [
 		'(・`ω´・)',
-		';;w;;',
-		'OwO',
-		'UwU',
-		'ÚwÚ',
-		'^-^',
-		'._.',
-		'*_*',
-		'>w<',
-		'^w^',
-		':3',
-		'x3',
 		'( ^ _ ^)∠☆',
 		'(U __ U)',
 		'(*^*)',
@@ -70,28 +227,14 @@ trait UwuifyOptionsTrait{
 		'ʕ •ᴥ•ʔ',
 		'(*^.^*)',
 		'(｡♥‿♥｡)',
-		'o.O',
-		'ö.ö',
-		'-.-',
+		'(°ロ°)',
+		'(ーー;)',
 		'(⑅˘꒳˘)',
 		'(ꈍᴗꈍ)',
 		'(˘ω˘)',
 		'(U ᵕ U❁)',
-		'σωσ',
-		'òωó',
 		'(U ﹏ U)',
 		'( ͡o ω ͡o )',
-		'ʘwʘ',
-		'XD',
-		'nyaa~~',
-		'nya~',
-		'mya',
-		'nani!?',
-		'rawr x3',
-		'>_<',
-		'rawr',
-		'^^',
-		'^^;;',
 		'(ˆ ﻌ ˆ)♡',
 		'^•ﻌ•^',
 		'/(^•ω•^)',
@@ -101,49 +244,123 @@ trait UwuifyOptionsTrait{
 		'(⁄ ⁄•⁄ω⁄•⁄ ⁄)',
 		'(=^・^=)',
 		'(︶｡︶✽)',
-	];
-
-	protected array $actions = [
-		'*blushes*',
-		'*nuzzles*',
-		'*notices bulge*',
-		'*whispers to self*',
-		'*cries*',
-		'*walks away*',
-		'*sweats*',
-		'*boops your nose*',
-		'*bleps*',
-		'*screams*',
-		'*twerks*',
-		'*runs away*',
-		'*screeches*',
-		'*looks at you*',
-		'*notices bulge*',
-		'*starts twerking*',
-		'*huggles tightly*',
-	];
-
-	protected array $exclamations = [
-		'!?',
-		'?!!',
-		'?!?1',
-		'!!11',
-		'?!1?',
+		'(* ^ ω ^)',
+		'(o^▽^o)',
+		'(≧◡≦)',
+		'*:･ﾟ✧*:･ﾟ✧',
+		'☆*:・ﾟ',
+		'〜☆',
 	];
 
 	/**
-	 * looks like array_rand() is not random enough, so we shuffle the array on each call
+	 * actions
+	 *
+	 * @var string[]
 	 */
-	protected function get_faces():array{
-		shuffle($this->faces);
+	protected array $actions = [
+		'blushes',
+		'nuzzles',
+		'notices bulge',
+		'whispers to self',
+		'cries',
+		'walks away',
+		'sweats',
+		'boops your nose',
+		'bleps',
+		'screams',
+		'twerks',
+		'runs away',
+		'screeches',
+		'looks at you',
+		'notices bulge',
+		'starts twerking',
+		'huggles tightly',
+		'whispers',
+		'zones out',
+		'stares',
+		'wheezes',
+		'pokes you',
+	];
 
-		return $this->faces;
+	/*
+	 * allow adding emoji etc
+	 */
+
+	/**
+	 * adds a value to the given array property
+	 *
+	 * @throws \InvalidArgumentException
+	 */
+	protected function addArrayValue(string $property, string $value):self{
+
+		if(!is_array($this->{$property})){
+			throw new InvalidArgumentException(sprintf('"%s" is not an array', $property));
+		}
+
+		$this->{$property}[] = $value;
+
+		return $this;
 	}
 
-	protected function get_actions():array{
-		shuffle($this->actions);
 
-		return $this->actions;
+	public function addPunctuation(string $punctuation):self{
+		return $this->addArrayValue('punctuation', $punctuation);
+	}
+
+	public function addEmoticon(string $emoticon):self{
+		return $this->addArrayValue('emoticons', $emoticon);
+	}
+
+	public function addEmoji(string $emoji):self{
+		return $this->addArrayValue('emoji', $emoji);
+	}
+
+	public function addKaomoji(string $kaomoji):self{
+		return $this->addArrayValue('kaomoji', $kaomoji);
+	}
+
+	public function addAction(string $action):self{
+		return $this->addArrayValue('actions', $action);
+	}
+
+	/*
+	 * looks like array_rand() is not random enough, so we shuffle the array on each call too
+	 */
+
+	/**
+	 * returns a random string from the given array property
+	 *
+	 * @throws \InvalidArgumentException
+	 */
+	protected function getArrayRandom(string $property):string{
+
+		if(!is_array($this->{$property})){
+			throw new InvalidArgumentException(sprintf('"%s" is not an array', $property));
+		}
+
+		shuffle($this->{$property});
+
+		return $this->{$property}[array_rand($this->{$property})];
+	}
+
+	public function getRandomPunctuation():string{
+		return $this->getArrayRandom('punctuation');
+	}
+
+	public function getRandomEmoticon():string{
+		return $this->getArrayRandom('emoticons');
+	}
+
+	public function getRandomEmoji():string{
+		return $this->getArrayRandom('emoji');
+	}
+
+	public function getRandomKaomoji():string{
+		return $this->getArrayRandom('kaomoji');
+	}
+
+	public function getRandomAction():string{
+		return $this->getArrayRandom('actions');
 	}
 
 }
